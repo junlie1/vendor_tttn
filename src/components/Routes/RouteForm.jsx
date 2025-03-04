@@ -79,7 +79,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Điểm đầu"
+                label="Điểm đón khách"
                 name="startPoint"
                 value={formData.startPoint}
                 onChange={handleChange}
@@ -89,7 +89,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Điểm cuối"
+                label="Điểm trả khách"
                 name="endPoint"
                 value={formData.endPoint}
                 onChange={handleChange}
