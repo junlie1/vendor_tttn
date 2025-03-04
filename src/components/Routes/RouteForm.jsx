@@ -7,19 +7,47 @@ import {
   TextField,
   Button,
   Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Typography,
 } from '@mui/material';
 import { routeService } from '../../services/routeService';
+import { cityVnService } from '../../services/cityVnService';
 
 const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
   const [formData, setFormData] = useState({
     routeName: '',
     startPoint: '',
     endPoint: '',
+    from: '',
+    to: '',
     distance: '',
     duration: '',
     price: '',
-    description: ''
+    description: '',
   });
+
+  const [city, setCity] = useState([]);
+  const [routes, setRoutes] = useState([]); // Danh sách tuyến đường hiện có
+  const [routeExists, setRouteExists] = useState(false); // Biến kiểm tra tuyến đường đã tồn tại
+
+  useEffect(() => {
+    const fetchAllCity = async () => {
+      const response = await cityVnService.getAllCity();
+      setCity(response.data);
+    };
+    fetchAllCity();
+
+    const fetchRoutes = async () => {
+      const response = await routeService.getRoutes();
+      if (response.success) {
+        setRoutes(response.data);
+      }
+    };
+    fetchRoutes();
+  }, []);
 
   useEffect(() => {
     if (route) {
@@ -27,24 +55,47 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
         routeName: route.routeName || '',
         startPoint: route.startPoint || '',
         endPoint: route.endPoint || '',
+        from: route.from || '',
+        to: route.to || '',
         distance: route.distance || '',
         duration: route.duration || '',
         price: route.price || '',
-        description: route.description || ''
+        description: route.description || '',
       });
     }
   }, [route]);
 
+  useEffect(() => {
+    // Tự động cập nhật routeName khi from hoặc to thay đổi
+    if (formData.from && formData.to) {
+      setFormData((prev) => ({
+        ...prev,
+        routeName: `${prev.from} - ${prev.to}`,
+      }));
+
+      // Kiểm tra xem tuyến đường đã tồn tại chưa
+      const exists = routes.some(
+        (r) => r.from === formData.from && r.to === formData.to
+      );
+      setRouteExists(exists);
+    }
+  }, [formData.from, formData.to, routes]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (routeExists) {
+      alert('Tuyến đường này đã tồn tại!');
+      return;
+    }
+
     try {
       if (route) {
         await routeService.updateRoute(route.id, formData);
@@ -66,16 +117,64 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
       <form onSubmit={handleSubmit}>
         <DialogContent>
           <Grid container spacing={2}>
+            {/* Dropdown chọn "From" */}
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>From</InputLabel>
+                <Select
+                  value={formData.from}
+                  onChange={handleChange}
+                  name="from"
+                  required
+                >
+                  {city.map((item) => (
+                    <MenuItem key={item.code} value={item.name}>
+                      {item.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Dropdown chọn "To" */}
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>To</InputLabel>
+                <Select
+                  value={formData.to}
+                  onChange={handleChange}
+                  name="to"
+                  required
+                >
+                  {city.map((item) => (
+                    <MenuItem key={item.code} value={item.name}>
+                      {item.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Hiển thị Tên tuyến đường (Không cho chỉnh sửa) */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Tên tuyến đường"
                 name="routeName"
                 value={formData.routeName}
-                onChange={handleChange}
-                required
+                disabled 
               />
             </Grid>
+
+            {/* Hiển thị cảnh báo nếu tuyến đường đã tồn tại */}
+            {routeExists && (
+              <Grid item xs={12}>
+                <Typography color="error">
+                  Tuyến đường này đã tồn tại trong hệ thống. Vui lòng chọn tuyến khác!
+                </Typography>
+              </Grid>
+            )}
+
             <Grid item xs={6}>
               <TextField
                 fullWidth
@@ -86,6 +185,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
                 required
               />
             </Grid>
+
             <Grid item xs={6}>
               <TextField
                 fullWidth
@@ -96,6 +196,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
                 required
               />
             </Grid>
+
             <Grid item xs={4}>
               <TextField
                 fullWidth
@@ -144,7 +245,12 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Hủy</Button>
-          <Button type="submit" variant="contained" color="primary">
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={routeExists} 
+          >
             {route ? 'Cập nhật' : 'Thêm mới'}
           </Button>
         </DialogActions>
@@ -153,4 +259,4 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
   );
 };
 
-export default RouteForm; 
+export default RouteForm;
