@@ -41,6 +41,8 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import { API_URL } from '../../config/constants';
 import { seatLayoutService } from '../../services/seatLayoutService';
+import { format, parseISO } from 'date-fns';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
 const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
   const [formData, setFormData] = useState({
@@ -77,11 +79,15 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
 
   useEffect(() => {
     if (schedule) {
+      const timeZone = 'Asia/Ho_Chi_Minh';
+      const departureTime = schedule.departureTime ? utcToZonedTime(new Date(schedule.departureTime), timeZone) : null;
+      const arrivalTime = schedule.arrivalTime ? utcToZonedTime(new Date(schedule.arrivalTime), timeZone) : null;
+
       setFormData({
         routeId: schedule.routeId || '',
         busId: schedule.busId || '',
-        departureTime: schedule.departureTime ? new Date(schedule.departureTime) : null,
-        arrivalTime: schedule.arrivalTime ? new Date(schedule.arrivalTime) : null,
+        departureTime: departureTime,
+        arrivalTime: arrivalTime,
         price: schedule.price?.toString() || '',
         status: schedule.status || 'upcoming',
         seatLayout: convertSeatLayoutFromFirestore(schedule.seatLayout)
@@ -198,10 +204,14 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     }
 };
 
-  const handleDateChange = (name) => (date) => {
+  const handleDateChange = (field) => (date) => {
+    // Chuyển đổi thời gian local thành UTC trước khi lưu
+    const timeZone = 'Asia/Ho_Chi_Minh';
+    const utcDate = zonedTimeToUtc(date, timeZone);
+    
     setFormData(prev => ({
       ...prev,
-      [name]: date
+      [field]: utcDate
     }));
   };
 
@@ -234,12 +244,21 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
+
     try {
+      const timeZone = 'Asia/Ho_Chi_Minh';
+      const scheduleData = {
+        ...formData,
+        departureTime: formData.departureTime ? format(utcToZonedTime(formData.departureTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
+        arrivalTime: formData.arrivalTime ? format(utcToZonedTime(formData.arrivalTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
+      };
+
       let response;
       if (schedule) {
-        response = await axios.put(`${API_URL}/schedules/${schedule.id}`, formData);
+        response = await axios.put(`${API_URL}/schedules/${schedule.id}`, scheduleData);
       } else {
-        response = await axios.post(`${API_URL}/schedules`, formData);
+        response = await axios.post(`${API_URL}/schedules`, scheduleData);
       }
       if (response.data.success) {
         enqueueSnackbar(

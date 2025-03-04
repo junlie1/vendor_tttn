@@ -52,7 +52,7 @@ const LoginPage = () => {
 
     try {
       const result = await loginVendor(email, password);
-      if(result.vendor){
+      if (result.vendor) {
         dispatch(setVendor(result.vendor));
         setSuccess("Đăng nhập thành công!");
       }
@@ -70,23 +70,8 @@ const LoginPage = () => {
     navigate("/signup");
   };
 
-  const handleCloseMessage = () => {
-    setError("");
-    setSuccess("");
-  };
-
   return (
     <LoginContainer>
-      {/* <MessageComponent
-        type="error"
-        message={error}
-        onClose={handleCloseMessage}
-      />
-      <MessageComponent
-        type="success"
-        message={success}
-        onClose={handleCloseMessage}
-      /> */}
 
       <LeftSection>
         <Title>Welcome Back!!</Title>
