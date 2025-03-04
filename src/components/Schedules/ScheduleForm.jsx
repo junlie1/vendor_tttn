@@ -67,10 +67,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [openSeatDialog, setOpenSeatDialog] = useState(false);
-
-  console.log('formData',formData);
-  
-  
+  const [selectedRoute, setSelectedRoute] = useState(null);
   useEffect(() => {
     if (open) {
       fetchRoutes();
@@ -109,7 +106,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     if (formData.busId) {
       const bus = buses.find(b => b.id === formData.busId);
       setSelectedBus(bus);
-      
       if (!schedule && bus?.defaultSeatLayout) {
         console.log("Setting seat layout from defaultSeatLayout:", bus.defaultSeatLayout);
         setFormData(prev => ({
@@ -127,7 +123,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     if (formData.busId) {
       const bus = buses.find((b) => b.id === formData.busId);
       setSelectedBus(bus);
-  
       if (bus?.defaultSeatLayoutId) {
         console.log("Fetching seat layout for bus:", bus.busNumber, "SeatLayout ID:", bus.defaultSeatLayoutId);
   
@@ -171,7 +166,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
           seatLayout: {
             floor1: response.data.floor1 || {},
             floor2: response.data.floor2 || {},
-          },
+          },  
         }));
       }
     } catch (error) {
@@ -182,11 +177,26 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData(prev => ({
-      ...prev,
-      [name]: value
+        ...prev,
+        [name]: value, 
     }));
-  };
+
+    // Khi người dùng chọn tuyến đường, cập nhật cả selectedRoute và price
+    if (name === 'routeId') {
+        const route = routes.find(r => r.id === value);
+        setSelectedRoute(route || null);
+
+        // Nếu tìm thấy tuyến đường, cập nhật giá vào formData
+        if (route) {
+            setFormData(prev => ({
+                ...prev,
+                price: route.price?.toString() || '' 
+            }));
+        }
+    }
+};
 
   const handleDateChange = (name) => (date) => {
     setFormData(prev => ({
@@ -216,28 +226,14 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     if (!formData.busId) return false;
     if (!formData.departureTime) return false;
     if (!formData.arrivalTime) return false;
-    if (!formData.price) return false;
     if (new Date(formData.arrivalTime) <= new Date(formData.departureTime)) return false;
-    
-    // Kiểm tra xem có thiết lập ghế chưa
-    const floor1Seats = Object.keys(formData.seatLayout.floor1).length;
-    const floor2Seats = Object.keys(formData.seatLayout.floor2).length;
-    
-    // Nếu là xe 2 tầng, yêu cầu phải có ghế ở cả 2 tầng
-    if (selectedBus?.busType?.numberOfFloors === 2) {
-      if (floor1Seats === 0 || floor2Seats === 0) return false;
-    } else {
-      // Nếu là xe 1 tầng, chỉ cần có ghế ở tầng 1
-      if (floor1Seats === 0) return false;
-    }
-    
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       let response;
       if (schedule) {
@@ -417,7 +413,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     <>
       <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
         <DialogTitle>
-          {schedule ? 'Chỉnh sửa lịch trình' : 'Thêm lịch trình mới aa'}
+          {schedule ? 'Chỉnh sửa lịch trình' : 'Thêm lịch trình mới'}
         </DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent>
@@ -496,12 +492,12 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Giá vé cơ bản"
+                      label="Giá vé (VNĐ)"
                       name="price"
                       value={formData.price}
                       onChange={handleChange}
-                      required
                       inputProps={{ min: 0 }}
+                      readOnly 
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>

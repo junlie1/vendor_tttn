@@ -231,16 +231,6 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
         </Grid>
 
         <Grid item xs={12}>
-          <TextField
-            type="number"
-            label="Giá mặc định"
-            value={defaultPrice}
-            onChange={(e) => setDefaultPrice(Number(e.target.value))}
-            fullWidth
-          />
-        </Grid>
-
-        <Grid item xs={12}>
           <Paper 
             sx={{ 
               width: '100%', 
