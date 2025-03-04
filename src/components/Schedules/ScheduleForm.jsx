@@ -291,14 +291,21 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
 
   const handleAddSeat = (event, floor) => {
     const currentSeats = Object.keys(formData.seatLayout[floor]).length;
-    const row = Math.floor(currentSeats / 4);
-    const col = currentSeats % 4;
-    const seatKey = `${String.fromCharCode(65 + row)}${col + 1}`;
+    // Tạo số thứ tự ghế
+    const seatNumber = currentSeats + 1;
+    // Tạo mã ghế: tầng 1 là A, tầng 2 là B
+    const seatKey = floor === 'floor1' 
+      ? `A${seatNumber.toString().padStart(2, '0')}` 
+      : `B${seatNumber.toString().padStart(2, '0')}`;
     
     if (formData.seatLayout[floor][seatKey]) {
       enqueueSnackbar('Ghế này đã tồn tại!', { variant: 'warning' });
       return;
     }
+
+    // Tính toán vị trí x, y dựa trên số thứ tự ghế
+    const row = Math.floor((seatNumber - 1) / 4);
+    const col = (seatNumber - 1) % 4;
 
     setFormData(prev => {
       const newSeatLayout = {

@@ -189,14 +189,17 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
   const SeatLayoutDesigner = () => {
     const handleAddSeat = (x, y) => {
       const floorKey = `floor${selectedFloor}`;
-      const seatId = `${String.fromCharCode(65 + y)}${x + 1}`;
+      const seatNumber = y * 4 + x + 1;
+      const seatId = selectedFloor === 1 
+        ? `A${seatNumber.toString().padStart(2, '0')}` 
+        : `B${seatNumber.toString().padStart(2, '0')}`;
       
       setSeatLayout(prev => ({
         ...prev,
         [floorKey]: {
           ...prev[floorKey],
           [seatId]: {
-            x: x * 80, // 80px là khoảng cách giữa các ghế
+            x: x * 80,
             y: y * 80,
             type: seatType,
             price: defaultPrice,
@@ -244,7 +247,11 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
               {Array.from({ length: 6 }).map((_, y) => (
                 <div key={y} style={{ display: 'flex' }}>
                   {Array.from({ length: 4 }).map((_, x) => {
-                    const seatId = `${String.fromCharCode(65 + y)}${x + 1}`;
+                    // Tính toán seatId dựa trên vị trí và tầng
+                    const seatNumber = y * 4 + x + 1;
+                    const seatId = selectedFloor === 1 
+                      ? `A${seatNumber.toString().padStart(2, '0')}` 
+                      : `B${seatNumber.toString().padStart(2, '0')}`;
                     const seat = seatLayout[`floor${selectedFloor}`][seatId];
                     
                     return (
@@ -260,7 +267,9 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          color: seat ? 'white' : 'black',
+                          fontWeight: 'bold'
                         }}
                       >
                         {seat && seatId}
