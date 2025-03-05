@@ -85,8 +85,8 @@ const BusRoutes = () => {
           <TableHead>
             <TableRow>
               <TableCell>Tên tuyến</TableCell>
-              <TableCell>Điểm đón khách</TableCell>
-              <TableCell>Điểm trả khách</TableCell>
+              <TableCell>Điểm đầu</TableCell>
+              <TableCell>Điểm cuối</TableCell>
               <TableCell>Khoảng cách (km)</TableCell>
               <TableCell>Thời gian (phút)</TableCell>
               <TableCell>Giá vé (VNĐ)</TableCell>

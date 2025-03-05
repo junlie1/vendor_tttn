@@ -199,7 +199,7 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
         [floorKey]: {
           ...prev[floorKey],
           [seatId]: {
-            x: x * 80,
+            x: x * 80, // 80px là khoảng cách giữa các ghế
             y: y * 80,
             type: seatType,
             price: defaultPrice,

@@ -70,12 +70,40 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [openSeatDialog, setOpenSeatDialog] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
+  const [busIdsInUse, setBusIdsInUse] = useState([]);
+
   useEffect(() => {
     if (open) {
       fetchRoutes();
       fetchBuses();
     }
   }, [open]);
+
+
+  //Kiểm tra xe đã chạy hay chưa để cho lịch trình lựa chọn
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/schedules`);
+        if (response.data.success) {
+          // Lọc ra danh sách các lịch trình chưa hoàn thành (upcoming hoặc ongoing)
+          const activeSchedules = response.data.data.filter(
+            (schedule) => schedule.status !== 'completed' // Chỉ lấy những lịch trình chưa hoàn thành
+          );
+  
+          // Lấy danh sách các busId đang được sử dụng
+          const usedBusIds = activeSchedules.map((schedule) => schedule.busId);
+          setBusIdsInUse(usedBusIds);
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách lịch trình:', error);
+        setError('Không thể tải danh sách lịch trình');
+      }
+    };
+  
+    fetchSchedules();
+  }, []);
+  
 
   useEffect(() => {
     if (schedule) {
@@ -204,14 +232,13 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     }
 };
 
-  const handleDateChange = (field) => (date) => {
-    // Chuyển đổi thời gian local thành UTC trước khi lưu
-    const timeZone = 'Asia/Ho_Chi_Minh';
-    const utcDate = zonedTimeToUtc(date, timeZone);
-    
+  const handleDateChange = (name) => (date) => {
+      // Chuyển đổi thời gian local thành UTC trước khi lưu
+      const timeZone = 'Asia/Ho_Chi_Minh';
+      const utcDate = zonedTimeToUtc(date, timeZone);
     setFormData(prev => ({
       ...prev,
-      [field]: utcDate
+      [name]: utcDate
     }));
   };
 
@@ -245,7 +272,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       const timeZone = 'Asia/Ho_Chi_Minh';
       const scheduleData = {
@@ -253,7 +279,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
         departureTime: formData.departureTime ? format(utcToZonedTime(formData.departureTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
         arrivalTime: formData.arrivalTime ? format(utcToZonedTime(formData.arrivalTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
       };
-
       let response;
       if (schedule) {
         response = await axios.put(`${API_URL}/schedules/${schedule.id}`, scheduleData);
@@ -291,22 +316,20 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
 
   const handleAddSeat = (event, floor) => {
     const currentSeats = Object.keys(formData.seatLayout[floor]).length;
-    // Tạo số thứ tự ghế
-    const seatNumber = currentSeats + 1;
-    // Tạo mã ghế: tầng 1 là A, tầng 2 là B
-    const seatKey = floor === 'floor1' 
-      ? `A${seatNumber.toString().padStart(2, '0')}` 
-      : `B${seatNumber.toString().padStart(2, '0')}`;
+      // Tạo số thứ tự ghế
+      const seatNumber = currentSeats + 1;
+      // Tạo mã ghế: tầng 1 là A, tầng 2 là B
+      const seatKey = floor === 'floor1' 
+        ? `A${seatNumber.toString().padStart(2, '0')}` 
+        : `B${seatNumber.toString().padStart(2, '0')}`;
     
     if (formData.seatLayout[floor][seatKey]) {
       enqueueSnackbar('Ghế này đã tồn tại!', { variant: 'warning' });
       return;
     }
-
     // Tính toán vị trí x, y dựa trên số thứ tự ghế
     const row = Math.floor((seatNumber - 1) / 4);
     const col = (seatNumber - 1) % 4;
-
     setFormData(prev => {
       const newSeatLayout = {
         ...prev.seatLayout,
@@ -468,21 +491,28 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                     </FormControl>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Xe</InputLabel>
-                      <Select
-                        name="busId"
-                        value={formData.busId}
-                        onChange={handleChange}
-                        label="Xe"
-                      >
-                        {buses.map((bus) => (
+                  <FormControl fullWidth required>
+                    <InputLabel>Xe</InputLabel>
+                    <Select
+                      name="busId"
+                      value={formData.busId}
+                      onChange={handleChange}
+                      label="Xe"
+                    >
+                      {buses
+                        .filter(
+                          (bus) =>
+                            !busIdsInUse.includes(bus.id) || // Xe không bị chiếm dụng
+                            (schedule && schedule.busId === bus.id) // Nếu đang chỉnh sửa, xe này vẫn có thể chọn
+                        )
+                        .map((bus) => (
                           <MenuItem key={bus.id} value={bus.id}>
                             {bus.busNumber} {bus.busType ? `- ${bus.busType.typeName}` : ''}
                           </MenuItem>
                         ))}
-                      </Select>
-                    </FormControl>
+                    </Select>
+                  </FormControl>
+
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>

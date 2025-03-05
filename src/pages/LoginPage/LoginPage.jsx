@@ -32,7 +32,6 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [waitingForVerification, setWaitingForVerification] = useState(false);
   const dispatch = useDispatch();
 
   const handleTogglePassword = () => {
@@ -42,27 +41,22 @@ const LoginPage = () => {
   const handleLogin = async () => {
     setError("");
     setSuccess("");
-    setWaitingForVerification(true);
 
     if (!email || !password) {
       setError("Vui lòng nhập đầy đủ email và mật khẩu.");
-      setWaitingForVerification(false);
       return;
     }
 
     try {
       const result = await loginVendor(email, password);
-      if (result.vendor) {
+      if(result.vendor){
         dispatch(setVendor(result.vendor));
-        setSuccess("Đăng nhập thành công!");
       }
       if (result.navigateTo) {
         navigate(result.navigateTo);
       }
     } catch (error) {
       setError(error.message);
-    } finally {
-      setWaitingForVerification(false);
     }
   };
 
@@ -70,14 +64,30 @@ const LoginPage = () => {
     navigate("/signup");
   };
 
+  const handleCloseMessage = () => {
+    setError("");
+    setSuccess("");
+  };
+
   return (
     <LoginContainer>
+      {/* <MessageComponent
+        type="error"
+        message={error}
+        onClose={handleCloseMessage}
+      />
+      <MessageComponent
+        type="success"
+        message={success}
+        onClose={handleCloseMessage}
+      /> */}
 
       <LeftSection>
         <Title>Welcome Back!!</Title>
         {error && <p style={{ color: "red" }}>{error}</p>}
-        {success && <p style={{ color: "green" }}>{success}</p>}
-        {waitingForVerification && <p>Đang xác thực...</p>}
+        {success && waitingForVerification && (
+          <p style={{ color: "green" }}>{success}</p>
+        )}
         <Form>
           <InputField>
             <Label>Email</Label>
