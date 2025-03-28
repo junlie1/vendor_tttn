@@ -15,8 +15,10 @@ import {
 } from '@mui/material';
 import { routeService } from '../../services/routeService';
 import { cityVnService } from '../../services/cityVnService';
+import { useSelector } from 'react-redux';
 
 const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
+  const vendorId = useSelector((state) => state.vendor.vendor.id);
   const [formData, setFormData] = useState({
     routeName: '',
     startPoint: '',
@@ -27,6 +29,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
     duration: '',
     price: '',
     description: '',
+    vendorId: '',
   });
 
   const [city, setCity] = useState([]);
@@ -61,6 +64,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
         duration: route.duration || '',
         price: route.price || '',
         description: route.description || '',
+        vendorId: vendorId
       });
     }
   }, [route]);
@@ -71,6 +75,7 @@ const RouteForm = ({ open, handleClose, route, onSubmitSuccess }) => {
       setFormData((prev) => ({
         ...prev,
         routeName: `${prev.from} - ${prev.to}`,
+        vendorId: vendorId
       }));
 
       // Kiểm tra xem tuyến đường đã tồn tại chưa

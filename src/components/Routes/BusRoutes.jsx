@@ -84,6 +84,7 @@ const BusRoutes = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Mã tuyến</TableCell>
               <TableCell>Tên tuyến</TableCell>
               <TableCell>Điểm đầu</TableCell>
               <TableCell>Điểm cuối</TableCell>
@@ -98,6 +99,7 @@ const BusRoutes = () => {
             {routes.length > 0 ? (
               routes.map((route) => (
                 <TableRow key={route.id}>
+                  <TableCell>{route.id}</TableCell>
                   <TableCell>{route.routeName}</TableCell>
                   <TableCell>{route.startPoint}</TableCell>
                   <TableCell>{route.endPoint}</TableCell>

@@ -22,6 +22,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { busService } from '../../services/busService';
 import { busTypeService } from '../../services/busTypeService';
 import BusForm from './BusForm';
+import { useSelector } from 'react-redux';
 
 const Buses = () => {
   const [buses, setBuses] = useState([]);
@@ -32,6 +33,7 @@ const Buses = () => {
   const [selectedBus, setSelectedBus] = useState(null);
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const [busToDelete, setBusToDelete] = useState(null);
+  const vendorId = useSelector((state) => state.vendor.vendor.id);
 
   useEffect(() => {
     fetchBuses();
@@ -42,6 +44,7 @@ const Buses = () => {
     try {
       setLoading(true);
       const response = await busService.getBuses();
+      console.log('response',response);
       setBuses(response.data || []);
     } catch (error) {
       console.error('Error fetching buses:', error);
@@ -135,6 +138,7 @@ const Buses = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Mã xe</TableCell>
               <TableCell>Số xe</TableCell>
               <TableCell>Loại xe</TableCell>
               <TableCell>Biển số</TableCell>
@@ -147,6 +151,7 @@ const Buses = () => {
           <TableBody>
             {buses.map((bus) => (
               <TableRow key={bus.id}>
+                <TableCell>{bus.id}</TableCell>
                 <TableCell>{bus.busNumber}</TableCell>
                 <TableCell>{getBusTypeName(bus.busTypeId)}</TableCell>
                 <TableCell>{bus.licensePlate}</TableCell>

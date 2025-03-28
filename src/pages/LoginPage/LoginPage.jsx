@@ -21,7 +21,7 @@ import gg_icon from "../../assets/gg_icon.jpg";
 import fb_icon from "../../assets/fb_icon.png";
 import { useNavigate } from "react-router-dom";
 import MessageComponent from "../../components/MessageComponent/MessageComponent";
-import { loginVendor } from "../../services/vendorService";
+import { loginVendor, resetUserPassword } from "../../services/vendorService";
 import { useDispatch } from "react-redux";
 import { setVendor } from "../../redux/slices/vendorSlice";
 
@@ -69,6 +69,21 @@ const LoginPage = () => {
     setSuccess("");
   };
 
+   // 🔥 Xử lý quên mật khẩu
+   const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Vui lòng nhập email để đặt lại mật khẩu.");
+      return;
+    }
+
+    try {
+      await resetUserPassword(email);
+      setSuccess("Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư!");
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
   return (
     <LoginContainer>
       {/* <MessageComponent
@@ -112,7 +127,7 @@ const LoginPage = () => {
               </EyeIcon>
             </PasswordWrapper>
           </InputField>
-          <ForgotPassword>Forgot Password?</ForgotPassword>
+          <ForgotPassword onClick={handleForgotPassword}>Forgot Password?</ForgotPassword>
           <Button type="button" onClick={handleLogin}>
             Login
           </Button>

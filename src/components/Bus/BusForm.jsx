@@ -81,7 +81,8 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
         yearOfManufacture: bus.yearOfManufacture ? new Date(bus.yearOfManufacture) : null,
         lastMaintenance: bus.lastMaintenance ? new Date(bus.lastMaintenance) : null,
         status: bus.status || 'active',
-        description: bus.description || ''
+        description: bus.description || '',
+        vendorId: vendor.id
       });
     } else {
       setFormData({
@@ -94,7 +95,7 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
         lastMaintenance: null,
         status: 'active',
         description: '',
-        vendorId: '',
+        vendorId: vendor.id,
       });
     }
   }, [bus]);
@@ -170,7 +171,6 @@ const BusForm = ({ open, handleClose, bus, onSubmit }) => {
       // Chuẩn bị dữ liệu để gửi
       const submitData = {
         ...formData,
-        vendorId: vendor.vendorId,
         yearOfManufacture: formData.yearOfManufacture ? new Date(formData.yearOfManufacture).toISOString() : null,
         lastMaintenance: formData.lastMaintenance ? new Date(formData.lastMaintenance).toISOString() : null,
         seatLayout: normalizedSeatLayout,

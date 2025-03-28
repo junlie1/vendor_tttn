@@ -43,9 +43,12 @@ import { API_URL } from '../../config/constants';
 import { seatLayoutService } from '../../services/seatLayoutService';
 import { format, parseISO } from 'date-fns';
 import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { useSelector } from 'react-redux';
+import { scheduleService } from '../../services/scheduleService';
 
 const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
-  const [formData, setFormData] = useState({
+  
+const [formData, setFormData] = useState({
     routeId: '',
     busId: '',
     departureTime: null,
@@ -56,7 +59,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
       floor1: {},
       floor2: {}
     }
-  });
+});
   const [selectedBus, setSelectedBus] = useState(null);
   const [routes, setRoutes] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -64,13 +67,14 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeFloor, setActiveFloor] = useState('floor1');
-  const [selectedSeatType, setSelectedSeatType] = useState('normal');
-  const [zoomLevel, setZoomLevel] = useState(1);
   const { enqueueSnackbar } = useSnackbar();
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [openSeatDialog, setOpenSeatDialog] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [busIdsInUse, setBusIdsInUse] = useState([]);
+  const scheduleTime = selectedRoute?.duration;
+  const vendor = useSelector((state) => state.vendor.vendor);
+  console.log('schedule', schedule);
 
   useEffect(() => {
     if (open) {
@@ -84,13 +88,14 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const response = await axios.get(`${API_URL}/schedules`);
-        if (response.data.success) {
+        const response = await scheduleService.getSchedules();
+        console.log('response', response.data);
+        if (response.success) {
           // Lọc ra danh sách các lịch trình chưa hoàn thành (upcoming hoặc ongoing)
-          const activeSchedules = response.data.data.filter(
+          const activeSchedules = response.data.filter(
             (schedule) => schedule.status !== 'completed' // Chỉ lấy những lịch trình chưa hoàn thành
           );
-  
+          console.log('activeSchedules',activeSchedules);
           // Lấy danh sách các busId đang được sử dụng
           const usedBusIds = activeSchedules.map((schedule) => schedule.busId);
           setBusIdsInUse(usedBusIds);
@@ -157,13 +162,19 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     if (formData.busId) {
       const bus = buses.find((b) => b.id === formData.busId);
       setSelectedBus(bus);
-      if (bus?.defaultSeatLayoutId) {
-        console.log("Fetching seat layout for bus:", bus.busNumber, "SeatLayout ID:", bus.defaultSeatLayoutId);
   
+      // Kiểm tra nếu có seatLayoutId từ lịch trình thì ưu tiên sử dụng
+      if (schedule?.seatLayoutId) {
+        fetchSeatLayout(schedule.seatLayoutId);
+      } 
+      // Nếu không có, thì lấy từ defaultSeatLayoutId của bus
+      else if (bus?.defaultSeatLayoutId) {
+        console.log("Fetching seat layout for bus:", bus.busNumber, "SeatLayout ID:", bus.defaultSeatLayoutId);
         fetchSeatLayout(bus.defaultSeatLayoutId);
       }
     }
-  }, [formData.busId, buses]);
+  }, [formData.busId, buses, schedule?.seatLayoutId]);
+  
 
   const fetchRoutes = async () => {
     try {
@@ -193,8 +204,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     try {
       const response = await seatLayoutService.getSeatLayout(seatLayoutId);
       if (response && response.data) {
-        console.log("Seat layout fetched:", response.data);
-  
         setFormData((prev) => ({
           ...prev,
           seatLayout: {
@@ -232,6 +241,19 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     }
 };
 
+useEffect(() => {
+  if (formData.departureTime && scheduleTime) {
+    const updatedArrivalTime = new Date(formData.departureTime);
+    updatedArrivalTime.setMinutes(updatedArrivalTime.getMinutes() + scheduleTime);
+
+    setFormData(prev => ({
+      ...prev,
+      arrivalTime: updatedArrivalTime
+    }));
+  }
+}, [formData.departureTime, scheduleTime]); // Chạy khi `departureTime` hoặc `scheduleTime` thay đổi
+
+
   const handleDateChange = (name) => (date) => {
       // Chuyển đổi thời gian local thành UTC trước khi lưu
       const timeZone = 'Asia/Ho_Chi_Minh';
@@ -240,6 +262,15 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
       ...prev,
       [name]: utcDate
     }));
+    if (name === 'departureTime' && scheduleTime) {
+      const updatedArrivalTime = new Date(utcDate);
+      updatedArrivalTime.setMinutes(updatedArrivalTime.getMinutes() + scheduleTime);
+  
+      setFormData(prev => ({
+        ...prev,
+        arrivalTime: updatedArrivalTime
+      }));
+    }
   };
 
   const handleSeatPriceChange = (floor, seatKey, value) => {
@@ -276,6 +307,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
       const timeZone = 'Asia/Ho_Chi_Minh';
       const scheduleData = {
         ...formData,
+        vendorId: vendor.id ,
         departureTime: formData.departureTime ? format(utcToZonedTime(formData.departureTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
         arrivalTime: formData.arrivalTime ? format(utcToZonedTime(formData.arrivalTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
       };
@@ -295,7 +327,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
         
         // Cập nhật lại dữ liệu local nếu thành công
         if (schedule && onSubmitSuccess) {
-          onSubmitSuccess(response.data.data);
+          onSubmitSuccess(response.data);
         } else if (onSubmitSuccess) {
           onSubmitSuccess();
         }
@@ -312,67 +344,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAddSeat = (event, floor) => {
-    const currentSeats = Object.keys(formData.seatLayout[floor]).length;
-      // Tạo số thứ tự ghế
-      const seatNumber = currentSeats + 1;
-      // Tạo mã ghế: tầng 1 là A, tầng 2 là B
-      const seatKey = floor === 'floor1' 
-        ? `A${seatNumber.toString().padStart(2, '0')}` 
-        : `B${seatNumber.toString().padStart(2, '0')}`;
-    
-    if (formData.seatLayout[floor][seatKey]) {
-      enqueueSnackbar('Ghế này đã tồn tại!', { variant: 'warning' });
-      return;
-    }
-    // Tính toán vị trí x, y dựa trên số thứ tự ghế
-    const row = Math.floor((seatNumber - 1) / 4);
-    const col = (seatNumber - 1) % 4;
-    setFormData(prev => {
-      const newSeatLayout = {
-        ...prev.seatLayout,
-        [floor]: {
-          ...prev.seatLayout[floor],
-          [seatKey]: {
-            isBooked: false,
-            bookedBy: null,
-            price: Number(prev.price) || 0,
-            type: selectedSeatType,
-            x: col * 80,
-            y: row * 80
-          }
-        }
-      };
-
-      return {
-        ...prev,
-        seatLayout: newSeatLayout
-      };
-    });
-  };
-
-
-  const handleRemoveSeat = (floor, seatKey) => {
-    setFormData(prev => {
-      const newLayout = { ...prev.seatLayout };
-      const floorLayout = { ...newLayout[floor] };
-      delete floorLayout[seatKey];
-      newLayout[floor] = floorLayout;
-      return {
-        ...prev,
-        seatLayout: newLayout
-      };
-    });
-  };
-
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.2, 2));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
   };
 
   // Hàm chuyển đổi dữ liệu ghế từ Firestore
@@ -401,8 +372,8 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
             y: Number(seatData.y) || 0
           };
           // Chỉ thêm phone nếu ghế đã được đặt và có số điện thoại
-          if (seatData.isBooked && seatData.phone) {
-            result[floor][seatKey].phone = seatData.phone;
+          if (seatData.isBooked && seatData.customerInfo) {
+            result[floor][seatKey].customerInfo = seatData.customerInfo;
           }
         });
       }
@@ -427,8 +398,8 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
     };
 
     // Chỉ thêm phone vào dữ liệu nếu ghế được đặt và có số điện thoại
-    if (updatedSeat.isBooked && updatedSeat.phone) {
-      normalizedSeatData.phone = updatedSeat.phone;
+    if (updatedSeat.isBooked && updatedSeat.customerInfo) {
+      normalizedSeatData.customerInfo = updatedSeat.customerInfo;
     }
 
     setFormData(prev => {
@@ -585,18 +556,6 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                   <Box sx={{ mb: 2 }}>
                     <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                       <Stack direction="row" spacing={2} alignItems="center">
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                          <InputLabel>Loại ghế</InputLabel>
-                          <Select
-                            value={selectedSeatType}
-                            onChange={(e) => setSelectedSeatType(e.target.value)}
-                            label="Loại ghế"
-                          >
-                            <MenuItem value="normal">Thường</MenuItem>
-                            <MenuItem value="vip">VIP</MenuItem>
-                            <MenuItem value="sleeper">Giường nằm</MenuItem>
-                          </Select>
-                        </FormControl>
                         <ButtonGroup variant="outlined">
                           <Button
                             variant={activeFloor === 'floor1' ? 'contained' : 'outlined'}
@@ -614,75 +573,9 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                           )}
                         </ButtonGroup>
                       </Stack>
-                      <ButtonGroup size="small">
-                        <Button onClick={handleZoomOut} disabled={zoomLevel <= 0.5}>
-                          <RemoveIcon />
-                        </Button>
-                        <Button disabled>
-                          {Math.round(zoomLevel * 100)}%
-                        </Button>
-                        <Button onClick={handleZoomIn} disabled={zoomLevel >= 2}>
-                          <AddIcon />
-                        </Button>
-                      </ButtonGroup>
                     </Stack>
                   </Box>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <Stack spacing={2}>
-                        <Paper 
-                          sx={{ 
-                            p: 2,
-                            height: 100,
-                            bgcolor: '#fafafa',
-                            border: '2px dashed #ccc',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': {
-                              bgcolor: '#f0f0f0',
-                              borderColor: '#1976d2'
-                            }
-                          }}
-                          onClick={(e) => handleAddSeat(e, 'floor1')}
-                        >
-                          <Stack direction="column" spacing={1} alignItems="center">
-                            <AddIcon color="primary" sx={{ fontSize: 30 }} />
-                            <Typography color="text.secondary" align="center">
-                              TẦNG 1 ({Object.keys(formData.seatLayout.floor1).length} GHẾ)
-                            </Typography>
-                          </Stack>
-                        </Paper>
-
-                        {isTwoFloorBus() && (
-                          <Paper 
-                            sx={{ 
-                              p: 2,
-                              height: 100,
-                              bgcolor: '#fafafa',
-                              border: '2px dashed #ccc',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              '&:hover': {
-                                bgcolor: '#f0f0f0',
-                                borderColor: '#1976d2'
-                              }
-                            }}
-                            onClick={(e) => handleAddSeat(e, 'floor2')}
-                          >
-                            <Stack direction="column" spacing={1} alignItems="center">
-                              <AddIcon color="primary" sx={{ fontSize: 30 }} />
-                              <Typography color="text.secondary" align="center">
-                                TẦNG 2 ({Object.keys(formData.seatLayout.floor2).length} GHẾ)
-                              </Typography>
-                            </Stack>
-                          </Paper>
-                        )}
-                      </Stack>
-                    </Grid>
                     <Grid item xs={12} md={8}>
                       <Paper 
                         sx={{ 
@@ -690,7 +583,8 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                           minHeight: 400,
                           maxHeight: 600,
                           display: 'flex',
-                          flexDirection: 'column'
+                          flexDirection: 'column',
+                          
                         }}
                       >
                         <Typography variant="subtitle1" gutterBottom>
@@ -748,7 +642,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                                           fullWidth
                                           size="small"
                                           type="number"
-                                          value={seat.price}
+                                          value={schedule?.price}
                                           onChange={(e) => handleSeatPriceChange(activeFloor, seatKey, e.target.value)}
                                           InputProps={{
                                             endAdornment: <Typography variant="caption">đ</Typography>
@@ -763,19 +657,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
                                         />
                                       </TableCell>
                                       <TableCell>{seat.bookedBy || '-'}</TableCell>
-                                      <TableCell>{seat.phone || '-'}</TableCell>
-                                      <TableCell align="center">
-                                        <IconButton
-                                          size="small"
-                                          color="error"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemoveSeat(activeFloor, seatKey);
-                                          }}
-                                        >
-                                          <RemoveCircleOutlineIcon />
-                                        </IconButton>
-                                      </TableCell>
+                                      <TableCell>{seat.customerInfo || '-'}</TableCell>
                                     </TableRow>
                                   ))}
                               </TableBody>
@@ -811,25 +693,13 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Loại ghế</InputLabel>
-                <Select
-                  value={selectedSeat?.type || 'normal'}
-                  onChange={(e) => setSelectedSeat(prev => ({ ...prev, type: e.target.value }))}
-                  label="Loại ghế"
-                >
-                  <MenuItem value="normal">Thường</MenuItem>
-                  <MenuItem value="vip">VIP</MenuItem>
-                  <MenuItem value="sleeper">Giường nằm</MenuItem>
-                </Select>
-              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Giá"
                 type="number"
-                value={selectedSeat?.price || ''}
+                value={schedule?.price || ''}
                 onChange={(e) => setSelectedSeat(prev => ({ ...prev, price: e.target.value }))}
               />
             </Grid>
@@ -857,8 +727,8 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
               <TextField
                 fullWidth
                 label="Số điện thoại"
-                value={selectedSeat?.phone || ''}
-                onChange={(e) => setSelectedSeat(prev => ({ ...prev, phone: e.target.value }))}
+                value={selectedSeat?.customerInfo || ''}
+                onChange={(e) => setSelectedSeat(prev => ({ ...prev, customerInfo: e.target.value }))}
                 disabled={!selectedSeat?.isBooked}
               />
             </Grid>
@@ -872,7 +742,7 @@ const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
               price: Number(selectedSeat.price),
               isBooked: selectedSeat.isBooked,
               bookedBy: selectedSeat.bookedBy,
-              phone: selectedSeat.phone
+              customerInfo: selectedSeat.customerInfo
             })}
             variant="contained"
           >

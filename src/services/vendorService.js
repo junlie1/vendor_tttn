@@ -1,6 +1,6 @@
 import { auth, firestore } from '../config/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser, signInWithEmailAndPassword  } from "firebase/auth";
-import { collection, getDocs, doc, setDoc } from "firebase/firestore"; 
+import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser, signInWithEmailAndPassword, sendPasswordResetEmail  } from "firebase/auth";
+import { collection, getDocs, doc, setDoc, query,where } from "firebase/firestore"; 
 
 export const registerVendor = async (vendorData) => {
     const { email, password, name } = vendorData; 
@@ -18,10 +18,10 @@ export const registerVendor = async (vendorData) => {
     try {
         // Kiểm tra email có tồn tại trong Firestore không
         const vendorsRef = collection(firestore, "vendors");
-        const snapshot = await getDocs(vendorsRef);
-        const existingEmails = snapshot.docs.map(doc => doc.data().email);
-
-        if (existingEmails.includes(email)) {
+        const q = query(vendorsRef, where("email", "==", email)); // Chỉ lấy vendor có email trùng khớp
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) { // Nếu có ít nhất 1 tài liệu => Email đã tồn tại
             throw { code: "auth/email-already-in-use", message: "Email này đã được sử dụng. Vui lòng sử dụng email khác." };
         }
 
@@ -114,13 +114,13 @@ export const loginVendor = async (email, password) => {
 
         // Lấy vendor từ Firestore theo `user.uid`
         const vendorsRef = collection(firestore, "vendors");
-  const snapshot = await getDocs(vendorsRef);
+        const snapshot = await getDocs(vendorsRef);
 
         // Lọc vendor theo `email`, đồng thời lấy luôn `id` của document
-const vendorDoc = snapshot.docs.find((doc) => doc.data().email === email);
+        const vendorDoc = snapshot.docs.find((doc) => doc.data().email === email);
 
         if (!vendorDoc) {
-throw new Error("Tài khoản không tồn tại. Vui lòng đăng ký.");
+            throw new Error("Tài khoản không tồn tại. Vui lòng đăng ký.");
         }
 
         // Lấy `vendorData` và `id`
@@ -140,5 +140,16 @@ throw new Error("Tài khoản không tồn tại. Vui lòng đăng ký.");
     } catch (error) {
         const errorMessage = errorMessages[error.code] || "Đăng nhập thất bại. Vui lòng thử lại.";
         throw new Error(errorMessage);
+    }
+};
+
+export const resetUserPassword = async (email) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+        console.log("Email đặt lại mật khẩu đã được gửi!");
+        return { success: true, message: "Vui lòng kiểm tra email để đặt lại mật khẩu." };
+    } catch (error) {
+        console.error("Lỗi đặt lại mật khẩu:", error.message);
+        return { success: false, message: error.message };
     }
 };

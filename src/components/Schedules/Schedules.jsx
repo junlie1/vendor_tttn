@@ -19,6 +19,7 @@ import { vi } from 'date-fns/locale';
 import ScheduleForm from './ScheduleForm';
 import { scheduleService } from '../../services/scheduleService';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { useSelector } from 'react-redux';
 
 const Schedules = () => {
   const [schedules, setSchedules] = useState([]);
@@ -28,6 +29,7 @@ const Schedules = () => {
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState(null);
+  const vendorId = useSelector((state) => state.vendor.vendor.id);
 
   useEffect(() => {
     fetchSchedules();
@@ -132,6 +134,7 @@ const Schedules = () => {
         <Table>
           <TableHead>
             <TableRow>
+            <TableCell>Mã lịch trình</TableCell>
               <TableCell>Tuyến đường</TableCell>
               <TableCell>Xe</TableCell>
               <TableCell>Thời gian khởi hành</TableCell>
@@ -146,6 +149,9 @@ const Schedules = () => {
               schedules.map((schedule) => {
                 return (
                   <TableRow key={schedule.id}>
+                    <TableCell>
+                      {schedule.id}
+                    </TableCell>
                     <TableCell>
                       {schedule.route ? schedule.route.routeName : 'N/A'}
                     </TableCell>

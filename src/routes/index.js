@@ -2,14 +2,9 @@ import HomePage from "../pages/HomePage/HomePage";
 import LoginPage from "../pages/LoginPage/LoginPage";
 import PendingPage from "../pages/PendingPage/PendingPage";
 import RegisterPage from "../pages/RegisterPage/RegisterPage";
-import Dashboard from "../components/Dashboard/Dashboard";
 import BusType from "../components/BusType/BusTypes";
 import Buses from "../components/Bus/Buses";
-import Customers from "../components/Customers/Customers";
-import Cities from "../components/Cities/Cities";
-import Reports from "../components/Reports/Reports";
 import Routes from "../components/Routes/BusRoutes";
-import Ticket from '../components/Tickets/Tickets';
 import Schedules from "../components/Schedules/Schedules";
 import Setting from "../components/Settings/Settings";
 
@@ -22,6 +17,8 @@ import {
     Person,
     Settings
   } from '@mui/icons-material';
+import Drivers from "../components/Customers/Driver";
+import Dashboard from "../components/Dashboard/Dashboard";
 
 export const routes = [
     {
@@ -61,7 +58,7 @@ export const routes = [
             },
             {
                 path: 'drivers',
-                page: Customers,
+                page: Drivers,
                 title: 'Quản lý tài xế',
                 icon: <Person />
             },
@@ -71,31 +68,6 @@ export const routes = [
                 title: 'Settings',
                 icon: <Settings />
             },
-            // {
-            //     path: 'city',
-            //     page: Cities,
-            //     title: 'Cities',
-            //     icon: <Settings />
-            // },
-            
-            // {
-            //     path: 'report',
-            //     page: Reports,
-            //     title: 'Reports',
-            //     icon: <Settings />
-            // },
-            // {
-            //     path: 'routes',
-            //     page: Routes,
-            //     title: 'Routes',
-            //     icon: <Settings />
-            // },
-            // {
-            //     path: 'ticket',
-            //     page: Ticket,
-            //     title: 'Tickets',
-            //     icon: <Settings />
-            // },
         ],
     },
     {
