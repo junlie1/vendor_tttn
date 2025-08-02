@@ -1,9 +1,9 @@
 import { auth, firestore } from '../config/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser, signInWithEmailAndPassword, sendPasswordResetEmail  } from "firebase/auth";
-import { collection, getDocs, doc, setDoc, query,where } from "firebase/firestore"; 
+import { createUserWithEmailAndPassword, sendEmailVerification, deleteUser, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { collection, getDocs, doc, setDoc, query, where } from "firebase/firestore";
 
 export const registerVendor = async (vendorData) => {
-    const { email, password, name } = vendorData; 
+    const { email, password, name } = vendorData;
 
     const errorMessages = {
         "auth/email-already-in-use": "Email này đã được sử dụng. Vui lòng sử dụng email khác.",
@@ -20,7 +20,7 @@ export const registerVendor = async (vendorData) => {
         const vendorsRef = collection(firestore, "vendors");
         const q = query(vendorsRef, where("email", "==", email)); // Chỉ lấy vendor có email trùng khớp
         const snapshot = await getDocs(q);
-        
+
         if (!snapshot.empty) { // Nếu có ít nhất 1 tài liệu => Email đã tồn tại
             throw { code: "auth/email-already-in-use", message: "Email này đã được sử dụng. Vui lòng sử dụng email khác." };
         }
@@ -32,7 +32,6 @@ export const registerVendor = async (vendorData) => {
 
         // Gửi email xác thực
         await sendEmailVerification(vendor);
-        console.log("Đợi xác thực email...");
 
         // Chờ xác thực email (tối đa 60 giây)
         const maxWaitTime = 30000;
@@ -62,7 +61,7 @@ export const registerVendor = async (vendorData) => {
             await waitForVerification;
         } catch (error) {
             console.error("Người dùng chưa xác thực email:", error.message);
-            
+
             // Xóa tài khoản nếu người dùng không xác thực email
             await deleteUser(vendor);
             throw {
@@ -132,7 +131,7 @@ export const loginVendor = async (email, password) => {
         } else if (vendorData.status === "active") {
             return {
                 navigateTo: "/home",
-                vendor: { id: vendorId, ...vendorData }, 
+                vendor: { id: vendorId, ...vendorData },
             };
         } else {
             throw new Error("Tài khoản của bạn chưa được kích hoạt.");
@@ -146,7 +145,6 @@ export const loginVendor = async (email, password) => {
 export const resetUserPassword = async (email) => {
     try {
         await sendPasswordResetEmail(auth, email);
-        console.log("Email đặt lại mật khẩu đã được gửi!");
         return { success: true, message: "Vui lòng kiểm tra email để đặt lại mật khẩu." };
     } catch (error) {
         console.error("Lỗi đặt lại mật khẩu:", error.message);

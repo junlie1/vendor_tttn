@@ -44,7 +44,6 @@ const Buses = () => {
     try {
       setLoading(true);
       const response = await busService.getBuses();
-      console.log('response',response);
       setBuses(response.data || []);
     } catch (error) {
       console.error('Error fetching buses:', error);
@@ -158,8 +157,8 @@ const Buses = () => {
                 <TableCell>{bus.manufacturer}</TableCell>
                 <TableCell>{bus.model}</TableCell>
                 <TableCell>
-                  {bus.status === 'active' ? 'Đang hoạt động' : 
-                   bus.status === 'maintenance' ? 'Đang bảo dưỡng' : 'Ngưng hoạt động'}
+                  {bus.status === 'active' ? 'Đang hoạt động' :
+                    bus.status === 'maintenance' ? 'Đang bảo dưỡng' : 'Ngưng hoạt động'}
                 </TableCell>
                 <TableCell align="right">
                   <IconButton onClick={() => handleEdit(bus)} color="primary">

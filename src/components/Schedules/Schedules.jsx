@@ -20,6 +20,7 @@ import ScheduleForm from './ScheduleForm';
 import { scheduleService } from '../../services/scheduleService';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { useSelector } from 'react-redux';
+import { zonedTimeToUtc } from 'date-fns-tz';
 
 const Schedules = () => {
   const [schedules, setSchedules] = useState([]);
@@ -30,6 +31,30 @@ const Schedules = () => {
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState(null);
   const vendorId = useSelector((state) => state.vendor.vendor.id);
+
+  useEffect(() => {
+    const now = new Date();
+
+    const updateTimeSchedules = async () => {
+      if (schedules && schedules.length > 0) {
+        for (const schedule of schedules) {
+          const arrival = new Date(schedule.arrivalTime);
+          if (schedule.status !== "completed") {
+            if (arrival < now) {
+              try {
+                await scheduleService.updateTimeSchedules();
+              } catch (err) {
+                console.error(`Update failed`, err);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    updateTimeSchedules();
+  }, [schedules]);
+
 
   useEffect(() => {
     fetchSchedules();
@@ -134,7 +159,7 @@ const Schedules = () => {
         <Table>
           <TableHead>
             <TableRow>
-            <TableCell>Mã lịch trình</TableCell>
+              <TableCell>Mã lịch trình</TableCell>
               <TableCell>Tuyến đường</TableCell>
               <TableCell>Xe</TableCell>
               <TableCell>Thời gian khởi hành</TableCell>
@@ -160,6 +185,7 @@ const Schedules = () => {
                     </TableCell>
                     <TableCell>
                       {schedule.departureTime
+                        // ? schedule.departureTime
                         ? format(new Date(schedule.departureTime), 'HH:mm dd/MM/yyyy', { locale: vi })
                         : 'N/A'}
                     </TableCell>

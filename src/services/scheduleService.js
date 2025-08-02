@@ -1,3 +1,4 @@
+import axios from 'axios';
 import api from './api';
 
 export const scheduleService = {
@@ -50,6 +51,16 @@ export const scheduleService = {
     try {
       const response = await api.delete(`/schedules/${id}`);
       return response.data;
+    } catch (error) {
+      console.error('Error in deleteSchedule:', error);
+      throw error;
+    }
+  },
+
+  updateTimeSchedules: async () => {
+    try {
+      const response = await api.patch('/schedules/update-time');
+      return response.data
     } catch (error) {
       console.error('Error in deleteSchedule:', error);
       throw error;

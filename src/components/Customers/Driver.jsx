@@ -1,33 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import './Driver.css';
 import { driverService } from '../../services/driverService';
+import { scheduleService } from '../../services/scheduleService';
 import { useSelector } from 'react-redux';
+import dayjs from 'dayjs';
 
 const Drivers = () => {
   const vendorId = useSelector((state) => state.vendor.vendor.id);
   const [drivers, setDrivers] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedDriverId, setSelectedDriverId] = useState(null);
+  const [schedules, setSchedules] = useState([]);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  
 
   useEffect(() => {
-    const fetchAllDriver = async () => {
+    const fetchAllData = async () => {
       try {
-        const response = await driverService.getAllDriver();
-        if(response?.success) {
-          setDrivers(response?.data);
+        // Lấy danh sách tài xế
+        const driverResponse = await driverService.getAllDriver();
+        if (driverResponse?.success) {
+          setDrivers(driverResponse.data);
+        }
+
+        // Lấy danh sách lịch trình
+        const scheduleResponse = await scheduleService.getSchedules();
+        if (scheduleResponse?.success) {
+          // 🔍 Chỉ giữ lại lịch trình có trạng thái "upcoming"
+          const upcomingSchedules = scheduleResponse.data.filter(
+            (schedule) => schedule.status === 'upcoming'
+          );
+          setSchedules(upcomingSchedules);
         }
       } catch (error) {
-        console.error('Error', error);
+        console.error('Lỗi khi tải dữ liệu', error);
       }
     };
-    fetchAllDriver();
+
+    fetchAllData();
   }, [vendorId]);
 
-  // Xử lý giao tuyến đường cho tài xế
   const handleAssignRoute = (driverId) => {
-    console.log(`Giao việc cho tài xế ${driverId}`);
-    // TODO: Mở modal hoặc chuyển hướng đến trang phân công tuyến đường
+    setSelectedDriverId(driverId);
+    setShowAssignModal(true);
   };
 
-  // Xử lý xóa tài xế
+  const assignScheduleToDriver = async () => {
+    try {
+      if (!selectedSchedule) return;
+  
+      await driverService.assignSchedule(selectedDriverId, selectedSchedule);
+      alert("Giao lịch trình thành công!");
+      setShowAssignModal(false);
+      setSelectedSchedule(null);
+    } catch (error) {
+      console.error("Lỗi khi giao lịch trình", error);
+      alert("Giao lịch trình thất bại.");
+    }
+  };
+  
+
   const handleDeleteDriver = async (driverId) => {
     if (window.confirm("Bạn có chắc muốn xóa tài xế này không?")) {
       try {
@@ -64,25 +96,23 @@ const Drivers = () => {
                 <td>{driver?.id}</td>
                 <td>{driver?.name}</td>
                 <td>{driver?.phone}</td>
-                <td>{driver?.email}</td>
+                <td>{driver?.email || driver['e-mail']}</td>
                 <td>{driver?.totalTrips}</td>
                 <td>
                   <div className="action-buttons">
-                    {/* Giao việc - Cung cấp tuyến đường */}
-                    <button 
-                      className="action-btn assign-route" 
+                    <button
+                      className="action-btn assign-route"
                       title="Giao tuyến đường"
                       onClick={() => handleAssignRoute(driver.id)}
                     >
-                      <i className="fas fa-route">🐟</i> {/* Icon Giao Việc */}
+                      <i className="fas fa-route">🚚</i>
                     </button>
-                    {/* Xóa tài xế */}
-                    <button 
-                      className="action-btn delete" 
+                    <button
+                      className="action-btn delete"
                       title="Xóa tài xế"
                       onClick={() => handleDeleteDriver(driver.id)}
                     >
-                      <i className="fas fa-trash">❌</i> {/* Icon Xóa */}
+                      <i className="fas fa-trash">❌</i>
                     </button>
                   </div>
                 </td>
@@ -91,6 +121,48 @@ const Drivers = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Popup modal giao lịch trình */}
+      {showAssignModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>Chọn lịch trình để giao cho tài xế</h2>
+              {schedules.length > 0 ? (
+                <ul>
+                  {schedules.map((schedule) => (
+                    <li key={schedule.id} style={{ marginBottom: '10px' }}>
+                      <div>
+                        <strong>{schedule.routeName}</strong>
+                        <div style={{ fontSize: '14px', color: '#555' }}>
+                          🕒 <b>Thời gian đi:</b> {dayjs(schedule.departureTime).format('DD/MM/YYYY HH:mm')} <br />
+                          🕓 <b>Thời gian đến:</b> {dayjs(schedule.arrivalTime).format('DD/MM/YYYY HH:mm')}<br />
+                          📍 <b>{schedule.route.startPoint}</b> → <b>{schedule.route.endPoint}</b>
+                        </div>
+                      </div>
+                      <button
+                        style={{ marginLeft: '10px' }}
+                        onClick={() => setSelectedSchedule(schedule.id)}
+                      >
+                        Chọn
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Không có lịch trình upcoming nào.</p>
+              )}
+
+              {selectedSchedule && (
+                <div style={{ marginTop: '20px' }}>
+                  <p><strong>Đã chọn lịch trình:</strong> {selectedSchedule}</p>
+                  <button onClick={assignScheduleToDriver}>Xác nhận giao lịch trình</button>
+                </div>
+              )}
+
+              <button onClick={() => setShowAssignModal(false)}>Đóng</button>
+            </div>
+          </div>
+        )}
     </div>
   );
 };

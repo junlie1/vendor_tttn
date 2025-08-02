@@ -47,8 +47,8 @@ import { useSelector } from 'react-redux';
 import { scheduleService } from '../../services/scheduleService';
 
 const ScheduleForm = ({ open, handleClose, schedule, onSubmitSuccess }) => {
-  
-const [formData, setFormData] = useState({
+
+  const [formData, setFormData] = useState({
     routeId: '',
     busId: '',
     departureTime: null,
@@ -59,7 +59,7 @@ const [formData, setFormData] = useState({
       floor1: {},
       floor2: {}
     }
-});
+  });
   const [selectedBus, setSelectedBus] = useState(null);
   const [routes, setRoutes] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -74,7 +74,7 @@ const [formData, setFormData] = useState({
   const [busIdsInUse, setBusIdsInUse] = useState([]);
   const scheduleTime = selectedRoute?.duration;
   const vendor = useSelector((state) => state.vendor.vendor);
-  console.log('schedule', schedule);
+
 
   useEffect(() => {
     if (open) {
@@ -89,13 +89,11 @@ const [formData, setFormData] = useState({
     const fetchSchedules = async () => {
       try {
         const response = await scheduleService.getSchedules();
-        console.log('response', response.data);
         if (response.success) {
           // Lọc ra danh sách các lịch trình chưa hoàn thành (upcoming hoặc ongoing)
           const activeSchedules = response.data.filter(
             (schedule) => schedule.status !== 'completed' // Chỉ lấy những lịch trình chưa hoàn thành
           );
-          console.log('activeSchedules',activeSchedules);
           // Lấy danh sách các busId đang được sử dụng
           const usedBusIds = activeSchedules.map((schedule) => schedule.busId);
           setBusIdsInUse(usedBusIds);
@@ -105,10 +103,10 @@ const [formData, setFormData] = useState({
         setError('Không thể tải danh sách lịch trình');
       }
     };
-  
+
     fetchSchedules();
   }, []);
-  
+
 
   useEffect(() => {
     if (schedule) {
@@ -146,7 +144,6 @@ const [formData, setFormData] = useState({
       const bus = buses.find(b => b.id === formData.busId);
       setSelectedBus(bus);
       if (!schedule && bus?.defaultSeatLayout) {
-        console.log("Setting seat layout from defaultSeatLayout:", bus.defaultSeatLayout);
         setFormData(prev => ({
           ...prev,
           seatLayout: {
@@ -162,19 +159,18 @@ const [formData, setFormData] = useState({
     if (formData.busId) {
       const bus = buses.find((b) => b.id === formData.busId);
       setSelectedBus(bus);
-  
+
       // Kiểm tra nếu có seatLayoutId từ lịch trình thì ưu tiên sử dụng
       if (schedule?.seatLayoutId) {
         fetchSeatLayout(schedule.seatLayoutId);
-      } 
+      }
       // Nếu không có, thì lấy từ defaultSeatLayoutId của bus
       else if (bus?.defaultSeatLayoutId) {
-        console.log("Fetching seat layout for bus:", bus.busNumber, "SeatLayout ID:", bus.defaultSeatLayoutId);
         fetchSeatLayout(bus.defaultSeatLayoutId);
       }
     }
   }, [formData.busId, buses, schedule?.seatLayoutId]);
-  
+
 
   const fetchRoutes = async () => {
     try {
@@ -209,7 +205,7 @@ const [formData, setFormData] = useState({
           seatLayout: {
             floor1: response.data.floor1 || {},
             floor2: response.data.floor2 || {},
-          },  
+          },
         }));
       }
     } catch (error) {
@@ -222,42 +218,42 @@ const [formData, setFormData] = useState({
     const { name, value } = e.target;
 
     setFormData(prev => ({
-        ...prev,
-        [name]: value, 
+      ...prev,
+      [name]: value,
     }));
 
     // Khi người dùng chọn tuyến đường, cập nhật cả selectedRoute và price
     if (name === 'routeId') {
-        const route = routes.find(r => r.id === value);
-        setSelectedRoute(route || null);
+      const route = routes.find(r => r.id === value);
+      setSelectedRoute(route || null);
 
-        // Nếu tìm thấy tuyến đường, cập nhật giá vào formData
-        if (route) {
-            setFormData(prev => ({
-                ...prev,
-                price: route.price?.toString() || '' 
-            }));
-        }
+      // Nếu tìm thấy tuyến đường, cập nhật giá vào formData
+      if (route) {
+        setFormData(prev => ({
+          ...prev,
+          price: route.price?.toString() || ''
+        }));
+      }
     }
-};
+  };
 
-useEffect(() => {
-  if (formData.departureTime && scheduleTime) {
-    const updatedArrivalTime = new Date(formData.departureTime);
-    updatedArrivalTime.setMinutes(updatedArrivalTime.getMinutes() + scheduleTime);
+  useEffect(() => {
+    if (formData.departureTime && scheduleTime) {
+      const updatedArrivalTime = new Date(formData.departureTime);
+      updatedArrivalTime.setMinutes(updatedArrivalTime.getMinutes() + scheduleTime);
 
-    setFormData(prev => ({
-      ...prev,
-      arrivalTime: updatedArrivalTime
-    }));
-  }
-}, [formData.departureTime, scheduleTime]); // Chạy khi `departureTime` hoặc `scheduleTime` thay đổi
+      setFormData(prev => ({
+        ...prev,
+        arrivalTime: updatedArrivalTime
+      }));
+    }
+  }, [formData.departureTime, scheduleTime]); // Chạy khi `departureTime` hoặc `scheduleTime` thay đổi
 
 
   const handleDateChange = (name) => (date) => {
-      // Chuyển đổi thời gian local thành UTC trước khi lưu
-      const timeZone = 'Asia/Ho_Chi_Minh';
-      const utcDate = zonedTimeToUtc(date, timeZone);
+    // Chuyển đổi thời gian local thành UTC trước khi lưu
+    const timeZone = 'Asia/Ho_Chi_Minh';
+    const utcDate = zonedTimeToUtc(date, timeZone);
     setFormData(prev => ({
       ...prev,
       [name]: utcDate
@@ -265,7 +261,7 @@ useEffect(() => {
     if (name === 'departureTime' && scheduleTime) {
       const updatedArrivalTime = new Date(utcDate);
       updatedArrivalTime.setMinutes(updatedArrivalTime.getMinutes() + scheduleTime);
-  
+
       setFormData(prev => ({
         ...prev,
         arrivalTime: updatedArrivalTime
@@ -307,7 +303,7 @@ useEffect(() => {
       const timeZone = 'Asia/Ho_Chi_Minh';
       const scheduleData = {
         ...formData,
-        vendorId: vendor.id ,
+        vendorId: vendor.id,
         departureTime: formData.departureTime ? format(utcToZonedTime(formData.departureTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
         arrivalTime: formData.arrivalTime ? format(utcToZonedTime(formData.arrivalTime, timeZone), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone }) : null,
       };
@@ -319,19 +315,19 @@ useEffect(() => {
       }
       if (response.data.success) {
         enqueueSnackbar(
-          schedule 
-            ? 'Cập nhật lịch trình thành công!' 
+          schedule
+            ? 'Cập nhật lịch trình thành công!'
             : 'Tạo lịch trình thành công!',
           { variant: 'success' }
         );
-        
+
         // Cập nhật lại dữ liệu local nếu thành công
         if (schedule && onSubmitSuccess) {
           onSubmitSuccess(response.data);
         } else if (onSubmitSuccess) {
           onSubmitSuccess();
         }
-        
+
         handleClose();
       } else {
         throw new Error(response.data.message || 'Có lỗi xảy ra');
@@ -462,27 +458,27 @@ useEffect(() => {
                     </FormControl>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Xe</InputLabel>
-                    <Select
-                      name="busId"
-                      value={formData.busId}
-                      onChange={handleChange}
-                      label="Xe"
-                    >
-                      {buses
-                        .filter(
-                          (bus) =>
-                            !busIdsInUse.includes(bus.id) || // Xe không bị chiếm dụng
-                            (schedule && schedule.busId === bus.id) // Nếu đang chỉnh sửa, xe này vẫn có thể chọn
-                        )
-                        .map((bus) => (
-                          <MenuItem key={bus.id} value={bus.id}>
-                            {bus.busNumber} {bus.busType ? `- ${bus.busType.typeName}` : ''}
-                          </MenuItem>
-                        ))}
-                    </Select>
-                  </FormControl>
+                    <FormControl fullWidth required>
+                      <InputLabel>Xe</InputLabel>
+                      <Select
+                        name="busId"
+                        value={formData.busId}
+                        onChange={handleChange}
+                        label="Xe"
+                      >
+                        {buses
+                          .filter(
+                            (bus) =>
+                              !busIdsInUse.includes(bus.id) || // Xe không bị chiếm dụng
+                              (schedule && schedule.busId === bus.id) // Nếu đang chỉnh sửa, xe này vẫn có thể chọn
+                          )
+                          .map((bus) => (
+                            <MenuItem key={bus.id} value={bus.id}>
+                              {bus.busNumber} {bus.busType ? `- ${bus.busType.typeName}` : ''}
+                            </MenuItem>
+                          ))}
+                      </Select>
+                    </FormControl>
 
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -491,11 +487,11 @@ useEffect(() => {
                         label="Thời gian khởi hành"
                         value={formData.departureTime}
                         onChange={handleDateChange('departureTime')}
-                        slotProps={{ 
-                          textField: { 
-                            fullWidth: true, 
-                            required: true 
-                          } 
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            required: true
+                          }
                         }}
                       />
                     </LocalizationProvider>
@@ -506,11 +502,11 @@ useEffect(() => {
                         label="Thời gian đến"
                         value={formData.arrivalTime}
                         onChange={handleDateChange('arrivalTime')}
-                        slotProps={{ 
-                          textField: { 
-                            fullWidth: true, 
-                            required: true 
-                          } 
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            required: true
+                          }
                         }}
                       />
                     </LocalizationProvider>
@@ -524,7 +520,7 @@ useEffect(() => {
                       value={formData.price}
                       onChange={handleChange}
                       inputProps={{ min: 0 }}
-                      readOnly 
+                      readOnly
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -577,14 +573,14 @@ useEffect(() => {
                   </Box>
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={8}>
-                      <Paper 
-                        sx={{ 
+                      <Paper
+                        sx={{
                           p: 2,
                           minHeight: 400,
                           maxHeight: 600,
                           display: 'flex',
                           flexDirection: 'column',
-                          
+
                         }}
                       >
                         <Typography variant="subtitle1" gutterBottom>
@@ -618,22 +614,22 @@ useEffect(() => {
                                     return rowA.localeCompare(rowB) || colA - colB;
                                   })
                                   .map(([seatKey, seat]) => (
-                                    <TableRow 
+                                    <TableRow
                                       key={seatKey}
                                       onClick={() => handleSeatClick(activeFloor, seatKey, seat)}
                                       sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                                     >
                                       <TableCell>{seatKey}</TableCell>
                                       <TableCell>
-                                        <Chip 
+                                        <Chip
                                           size="small"
                                           label={
                                             seat.type === 'vip' ? 'VIP' :
-                                            seat.type === 'sleeper' ? 'Giường nằm' : 'Thường'
+                                              seat.type === 'sleeper' ? 'Giường nằm' : 'Thường'
                                           }
                                           color={
                                             seat.type === 'vip' ? 'warning' :
-                                            seat.type === 'sleeper' ? 'primary' : 'success'
+                                              seat.type === 'sleeper' ? 'primary' : 'success'
                                           }
                                         />
                                       </TableCell>
@@ -650,7 +646,7 @@ useEffect(() => {
                                         />
                                       </TableCell>
                                       <TableCell>
-                                        <Chip 
+                                        <Chip
                                           size="small"
                                           label={seat.isBooked ? 'Đã đặt' : 'Trống'}
                                           color={seat.isBooked ? 'error' : 'success'}
@@ -673,9 +669,9 @@ useEffect(() => {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleClose}>Hủy</Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
+            <Button
+              type="submit"
+              variant="contained"
               color="primary"
               disabled={loading || !validateForm()}
             >
@@ -736,7 +732,7 @@ useEffect(() => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenSeatDialog(false)}>Hủy</Button>
-          <Button 
+          <Button
             onClick={() => handleSeatUpdate({
               type: selectedSeat.type,
               price: Number(selectedSeat.price),
