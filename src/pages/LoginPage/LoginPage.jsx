@@ -49,7 +49,7 @@ const LoginPage = () => {
 
     try {
       const result = await loginVendor(email, password);
-      if(result.vendor){
+      if (result.vendor) {
         dispatch(setVendor(result.vendor));
       }
       if (result.navigateTo) {
@@ -69,8 +69,8 @@ const LoginPage = () => {
     setSuccess("");
   };
 
-   // 🔥 Xử lý quên mật khẩu
-   const handleForgotPassword = async () => {
+  // 🔥 Xử lý quên mật khẩu
+  const handleForgotPassword = async () => {
     if (!email) {
       setError("Vui lòng nhập email để đặt lại mật khẩu.");
       return;
@@ -100,7 +100,7 @@ const LoginPage = () => {
       <LeftSection>
         <Title>Welcome Back!!</Title>
         {error && <p style={{ color: "red" }}>{error}</p>}
-        {success && waitingForVerification && (
+        {success && (
           <p style={{ color: "green" }}>{success}</p>
         )}
         <Form>
