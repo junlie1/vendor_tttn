@@ -20,8 +20,7 @@ import ScheduleForm from './ScheduleForm';
 import { scheduleService } from '../../services/scheduleService';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { useSelector } from 'react-redux';
-import { zonedTimeToUtc } from 'date-fns-tz';
-
+import { formatVietnamTime } from "../../utils/formatVietnamTime";
 const Schedules = () => {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,24 +34,16 @@ const Schedules = () => {
   useEffect(() => {
     const now = new Date();
 
-    const updateTimeSchedules = async () => {
-      if (schedules && schedules.length > 0) {
-        for (const schedule of schedules) {
-          const arrival = new Date(schedule.arrivalTime);
-          if (schedule.status !== "completed") {
-            if (arrival < now) {
-              try {
-                await scheduleService.updateTimeSchedules();
-              } catch (err) {
-                console.error(`Update failed`, err);
-              }
-            }
-          }
-        }
-      }
-    };
+    //some(): có ít nhất 1 schedule hợp lệ thì mới update
+    const shouldUpdate = schedules.some(schedule => {
+      const arrival = new Date(schedule.arrivalTime);
+      return schedule.status !== "completed" && arrival < now;
+    });
 
-    updateTimeSchedules();
+    if (shouldUpdate) {
+      scheduleService.updateTimeSchedules()
+        .catch(err => console.error("Update failed", err));
+    }
   }, [schedules]);
 
 
@@ -184,15 +175,10 @@ const Schedules = () => {
                       {schedule.bus ? schedule.bus.busNumber : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {schedule.departureTime
-                        // ? schedule.departureTime
-                        ? format(new Date(schedule.departureTime), 'HH:mm dd/MM/yyyy', { locale: vi })
-                        : 'N/A'}
+                      {formatVietnamTime(schedule.departureTime)}
                     </TableCell>
                     <TableCell>
-                      {schedule.arrivalTime
-                        ? format(new Date(schedule.arrivalTime), 'HH:mm dd/MM/yyyy', { locale: vi })
-                        : 'N/A'}
+                      {formatVietnamTime(schedule.arrivalTime)}
                     </TableCell>
                     <TableCell>{schedule.price?.toLocaleString() || 0} VNĐ</TableCell>
                     <TableCell>
